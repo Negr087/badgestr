@@ -16,7 +16,7 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { UserDisplayName } from "@/components/ui/user-display-name"
 import Link from "next/link"
 import { nip19 } from "nostr-tools"
-import { NDKEvent, NDKKind } from "@nostr-dev-kit/ndk"
+import { NDKEvent } from "@nostr-dev-kit/ndk"
 
 export default function BadgePage() {
   const params = useParams()
@@ -208,7 +208,7 @@ export default function BadgePage() {
         <Card className="p-8 text-center space-y-4 max-w-md">
           <BadgeCheck className="h-16 w-16 text-muted-foreground/50 mx-auto" />
           <h1 className="text-2xl font-bold">Badge Not Found</h1>
-          <p className="text-muted-foreground">This badge doesn't exist or has been removed.</p>
+          <p className="text-muted-foreground">This badge doesn&apos;t exist or has been removed.</p>
           <Button asChild>
             <Link href="/">Browse Badges</Link>
           </Button>

@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { BadgeCheck, LogOut, User, Plus } from "lucide-react"
-import Link from "next/link"
 import { useProfile } from "@/hooks/use-profile"
 
 interface HeaderProps {

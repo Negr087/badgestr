@@ -20,9 +20,9 @@ class NostrClient {
     // at the call site.
     const sub = this.pool.subscribeMany(
       this.relays,
-      // cast to any to satisfy the pool signature while preserving runtime
-      // support for either a single Filter or an array of Filters
-      filters as unknown as any,
+      // Cast via unknown -> Filter to avoid using `any` while still
+      // satisfying the pool signature when runtime accepts arrays.
+      filters as unknown as Filter,
       {
         onevent(event) {
           onEvent(event as NostrEvent)
