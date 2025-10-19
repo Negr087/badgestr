@@ -1,5 +1,5 @@
 import type { EventTemplate } from "nostr-tools"
-import type { NostrEvent, BadgeDefinition } from "./types"
+import type { BadgeDefinition } from "./types"
 import { signEventWithMethod, type AuthMethod } from "./auth-methods"
 
 // Create a badge definition event (kind 30009)
@@ -12,7 +12,7 @@ export async function createBadgeDefinition(
     thumb?: string
   },
   method: AuthMethod
-): Promise<any> {
+): Promise<EventTemplate> {  // CAMBIAR de 'any' a 'EventTemplate'
   const tags: string[][] = [
     ["d", params.identifier],
     ["name", params.name],
@@ -41,7 +41,7 @@ export async function createBadgeAward(
     recipientPubkeys: string[]
   },
   method: AuthMethod
-): Promise<any> {
+): Promise<EventTemplate> {  // CAMBIAR de 'any' a 'EventTemplate'
   const tags: string[][] = [["a", params.badgeDefinitionId]]
 
   params.recipientPubkeys.forEach((pubkey) => {
