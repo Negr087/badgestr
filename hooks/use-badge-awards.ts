@@ -34,11 +34,11 @@ export function useBadgeAwards(recipientPubkey: string | null | undefined) {
   }
 
   async function fetchDefinitionsWithRetries(pubkey: string, ndkInstance: any) {
-    setIsUpdating(true)
-    try {
-      const maxAttempts = 3
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
+  setIsUpdating(true)
+  try {
+    const maxAttempts = 1  // CAMBIAR de 3 a 1
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
           const missing: Map<string, { kind: number; pubkey: string; identifier: string }> = new Map()
           awards.forEach((a) => {
             if (!badgeCache.has(a.badgeId)) {
@@ -59,8 +59,8 @@ export function useBadgeAwards(recipientPubkey: string | null | undefined) {
           const kinds = Array.from(new Set(Array.from(missing.values()).map((v) => v.kind)))
 
           const fetchPromise = ndkInstance.fetchEvents({ kinds, authors, "#d": identifiers, limit: 500 })
-          const timeoutMs = 3000 * attempt
-          const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error("fetch timeout")), timeoutMs))
+        const timeoutMs = 2000  // CAMBIAR de 3000 * attempt a 2000 fijo
+        const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error("fetch timeout")), timeoutMs))
           const events = await Promise.race([fetchPromise, timeoutPromise])
           const fetchedEvents = Array.from(events as Iterable<NDKEvent>)
 
@@ -123,16 +123,19 @@ export function useBadgeAwards(recipientPubkey: string | null | undefined) {
     let mounted = true
 
     async function fetchAwards() {
-      if (!recipientPubkey) return
-      
-      try {
-        setIsLoading(true)
+  if (!recipientPubkey) return
+  
+  try {
+    setIsLoading(true)
+    console.log("Starting fetchAwards...")  // AGREGAR
 
-        const awardEvents = await ndk.fetchEvents({
-          kinds: [8],
-          "#p": [recipientPubkey],
-          limit: 100,
-        })
+    const awardEvents = await ndk.fetchEvents({
+      kinds: [8],
+      "#p": [recipientPubkey],
+      limit: 100,
+    })
+    
+    console.log("Found award events:", awardEvents.size)  // AGREGAR
 
         if (!mounted) return
 
@@ -205,7 +208,7 @@ export function useBadgeAwards(recipientPubkey: string | null | undefined) {
         const kinds = Array.from(new Set(Array.from(missingBadgeMap.values()).map((v) => v.kind)))
 
         const fetchPromise = ndk.fetchEvents({ kinds, authors, "#d": identifiers, limit: 500 })
-        const timeoutMs = 5000
+const timeoutMs = 3000  // CAMBIAR de 5000 a 3000
         const timeoutPromise = new Promise((_, rej) => 
           setTimeout(() => rej(new Error("fetch timeout")), timeoutMs)
         )

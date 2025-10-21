@@ -13,7 +13,7 @@ importers:
         version: 3.10.0(react-hook-form@7.65.0(react@19.2.0))
       '@nostr-dev-kit/ndk':
         specifier: latest
-        version: 2.17.10(nostr-tools@2.17.0(typescript@5.9.3))
+        version: 2.18.1(nostr-tools@2.17.0(typescript@5.9.3))
       '@radix-ui/react-accordion':
         specifier: 1.2.2
         version: 1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -533,8 +533,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@nostr-dev-kit/ndk@2.17.10':
-    resolution: {integrity: sha512-4wz+TRchByFwTqR9NJG1zZ+Ng0zxgRpVZ1kZXuVVJHxsxmi/Iggq+rlUEN+2re8qYom0mY5nTs/iIklFb6JXoQ==}
+  '@nostr-dev-kit/ndk@2.18.1':
+    resolution: {integrity: sha512-LTXXheGfmyN1y8x+8v/Dmkx8YX7LqaoVk0DTSaigETB5RZsxw7dLBKK++kZd4DVIxtj0tRfmSOsTr1E+M4653Q==}
     engines: {node: '>=16'}
     peerDependencies:
       nostr-tools: ^2.17.0
@@ -3503,7 +3503,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@nostr-dev-kit/ndk@2.17.10(nostr-tools@2.17.0(typescript@5.9.3))':
+  '@nostr-dev-kit/ndk@2.18.1(nostr-tools@2.17.0(typescript@5.9.3))':
     dependencies:
       '@codesandbox/sandpack-client': 2.19.8
       '@noble/curves': 1.9.7

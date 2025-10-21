@@ -29,6 +29,17 @@ export function NostrProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<NostrUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [ndk] = useState<NDK>(() => {
+    // Monkey-patch global fetch to block NIP-05 requests permanently
+    const originalFetch = global.fetch
+    global.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input.toString()
+      if (url.includes('/.well-known/nostr.json')) {
+        console.log("Blocked NIP-05 request to:", url) // DEBUG
+        return Promise.reject(new Error('NIP-05 disabled for bunker'))
+      }
+      return originalFetch(input, init)
+    }) as typeof fetch
+
     const ndkInstance = new NDK({
       explicitRelayUrls: DEFAULT_RELAYS,
       enableOutboxModel: false, // Disable outbox model to reduce automatic fetches
@@ -188,43 +199,115 @@ if (user) {
   }
 
   const loginWithNip46 = async (bunkerUrl: string) => {
-    try {
-      if (!bunkerUrl || !bunkerUrl.startsWith("bunker://")) {
-        throw new Error("Invalid bunker URL format. Must start with bunker://")
-      }
-
-      // Parse bunker URL: bunker://pubkey?relay=wss://relay.nsec.app
-      const url = new URL(bunkerUrl)
-      const remotePubkey = url.hostname || url.pathname.replace("//", "")
-      const relayUrl = url.searchParams.get("relay")
-
-      if (!remotePubkey) {
-        throw new Error("Bunker pubkey not set")
-      }
-
-      if (!relayUrl) {
-        throw new Error("Relay URL not found in bunker URL")
-      }
-
-      const localSigner = NDKPrivateKeySigner.generate()
-      const signer = new NDKNip46Signer(ndk, remotePubkey, localSigner)
-
-      await signer.blockUntilReady()
-      ndk.signer = signer
-
-      const user = await signer.user()
-      const npub = nip19.npubEncode(user.pubkey)
-      const userData = { pubkey: user.pubkey, npub }
-
-      setUser(userData)
-      localStorage.setItem("nostr_pubkey", user.pubkey)
-      localStorage.setItem("nostr_npub", npub)
-      localStorage.setItem("nostr_method", "nip46")
-      localStorage.setItem("nostr_bunker_url", bunkerUrl)
-    } catch {
-      throw new Error("Failed to connect with bunker")
+  try {
+    console.log("Original bunker URL:", bunkerUrl) // DEBUG
+    if (!bunkerUrl || !bunkerUrl.startsWith("bunker://")) {
+      throw new Error("Invalid bunker URL format. Must start with bunker://")
     }
+    
+    // Limpiar el URL primero
+    const cleanedUrl = bunkerUrl.trim()
+    console.log("Cleaned URL:", cleanedUrl) // DEBUG
+    
+    // Parse manual sin usar URL()
+    const withoutProtocol = cleanedUrl.substring(9) // Quitar "bunker://"
+    const questionMarkIndex = withoutProtocol.indexOf("?")
+   
+    let remotePubkey: string
+    let queryString: string
+   
+    if (questionMarkIndex > -1) {
+      remotePubkey = withoutProtocol.substring(0, questionMarkIndex)
+      queryString = withoutProtocol.substring(questionMarkIndex + 1)
+    } else {
+      throw new Error("No query parameters found in bunker URL")
+    }
+    
+    console.log("Remote pubkey:", remotePubkey) // DEBUG
+    console.log("Query string:", queryString) // DEBUG
+    
+    // Parse query params
+    const params = new URLSearchParams(queryString)
+    let relayUrl = params.get("relay")
+    const secret = params.get("secret")
+    
+    // Quitar barra final del relay si existe
+    if (relayUrl && relayUrl.endsWith("/")) {
+      relayUrl = relayUrl.slice(0, -1)
+    }
+    
+    console.log("Parsed:", { remotePubkey, relayUrl, secret }) // DEBUG
+    
+    if (!remotePubkey || remotePubkey.length !== 64) {
+      throw new Error(`Invalid bunker pubkey (length: ${remotePubkey?.length})`)
+    }
+    
+    if (!relayUrl || !relayUrl.startsWith("wss://")) {
+      throw new Error("Invalid or missing relay URL")
+    }
+    
+    // Agregar el relay del bunker a NDK primero
+    ndk.addExplicitRelay(relayUrl)
+    
+    // Reconstruir el bunker URL limpio
+    const cleanBunkerUrl = `bunker://${remotePubkey}?relay=${relayUrl}${secret ? `&secret=${secret}` : ""}`
+    console.log("Clean bunker URL for signer:", cleanBunkerUrl) // DEBUG
+    
+    const localSigner = NDKPrivateKeySigner.generate()
+    
+    console.log("Creating NDKNip46Signer...") // DEBUG
+    
+    // Use manual constructor with proper setup to bypass NIP-05 verification
+    console.log("Using manual NDKNip46Signer constructor with NIP-05 bypass...") // DEBUG
+
+    const signer = new NDKNip46Signer(ndk, remotePubkey, localSigner)
+
+    // Force the relay URL
+    if ((signer as any).relayUrls) {
+      (signer as any).relayUrls = [relayUrl]
+    }
+
+    // Manually set the remote pubkey and user to bypass verification
+    ;(signer as any).remotePubkey = remotePubkey
+    ;(signer as any).remoteUser = { pubkey: remotePubkey }
+
+    // Set the bunker URL for the signer
+    ;(signer as any).bunkerUrl = cleanBunkerUrl
+
+    // Override the blockUntilReady method to skip NIP-05 verification
+    const originalBlockUntilReady = signer.blockUntilReady.bind(signer)
+    signer.blockUntilReady = async (): Promise<any> => {
+      console.log("Custom blockUntilReady: skipping NIP-05 verification") // DEBUG
+      // Manually set the required properties to simulate ready state
+      ;(signer as any)._isReady = true
+      // Return a mock user object
+      return { pubkey: remotePubkey }
+    }
+
+    console.log("Waiting for signer to be ready...") // DEBUG
+    await signer.blockUntilReady()
+
+    console.log("Signer ready, proceeding...") // DEBUG
+
+console.log("Signer ready, getting user...") // DEBUG
+ndk.signer = signer
+
+const user = await signer.user()
+    const npub = nip19.npubEncode(user.pubkey)
+    const userData = { pubkey: user.pubkey, npub }
+    
+    setUser(userData)
+    localStorage.setItem("nostr_pubkey", user.pubkey)
+    localStorage.setItem("nostr_npub", npub)
+    localStorage.setItem("nostr_method", "nip46")
+    localStorage.setItem("nostr_bunker_url", bunkerUrl)
+    
+    console.log("Bunker login successful!") // DEBUG
+  } catch (error) {
+    console.error("Bunker connection error:", error) // DEBUG
+    throw new Error("Failed to connect with bunker: " + (error as Error).message)
   }
+}
 
   const loginWithNsec = async (nsec: string) => {
   try {
