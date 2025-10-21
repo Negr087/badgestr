@@ -192,23 +192,9 @@ export function BadgeDetailModal({ badge, open, onOpenChange, onAwardClick }: Ba
               </div>
             </div>
           )}
-
-          {/* Si NO eres el creador */}
-          {!isCreator && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold">Claim this Badge</h3>
-                <p className="text-sm text-muted-foreground">
-                  Contact the creator to receive this badge
-                </p>
-              </div>
-              <Button className="w-full" variant="outline" asChild>
-                <a href={badgeUrl} target="_blank" rel="noopener noreferrer">
-                  <Award className="h-4 w-4 mr-2" />
-                  View Claim Page
-                </a>
-              </Button>
-              <Separator />
+          {/* Si NO eres el creador - solo mostrar info */}
+{!isCreator && (
+  <div className="space-y-4">
 
               {/* Badge ID e Identifier para no-creador */}
               <div className="space-y-2">

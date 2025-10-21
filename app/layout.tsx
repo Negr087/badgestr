@@ -10,7 +10,7 @@ import "./globals.css"
 // const geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Nostr Badges",
+  title: "Badgestr",
   description: "Create and manage Nostr badges",
   generator: "v0.app",
 }
