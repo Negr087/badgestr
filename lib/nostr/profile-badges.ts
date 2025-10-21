@@ -127,14 +127,14 @@ export async function toggleProfileBadge(
             try {
               const ids = Array.from(events).map((e) => e.id)
               console.log("Observed profile-badges events:", ids)
-            } catch (e) {
-              // ignore
+            } catch {
+              // ignore error when logging event IDs
             }
             found = true
             break
           }
         }
-      } catch (err) {
+      } catch {
         // ignore fetch errors and retry
       }
       await new Promise((res) => setTimeout(res, 100 * Math.pow(2, i)))

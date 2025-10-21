@@ -34,7 +34,7 @@ const { profileBadges, refetch: refetchProfileBadges } = useProfileBadges(
   filterMode === "myAwards" ? user?.pubkey : undefined
 )
 
-// Extraer badgeIds para filtrar
+// Extraer badgeIds para filtrar (used for filtering logic)
 const wornBadgeIds = profileBadges.map(b => b.badgeId)
 
 const handleCreateBadge = () => {

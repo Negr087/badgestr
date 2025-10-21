@@ -263,23 +263,30 @@ if (user) {
     const signer = new NDKNip46Signer(ndk, remotePubkey, localSigner)
 
     // Force the relay URL
-    if ((signer as any).relayUrls) {
-      (signer as any).relayUrls = [relayUrl]
+    const signerAny = signer as { relayUrls?: string[] }
+    if (signerAny.relayUrls) {
+      signerAny.relayUrls = [relayUrl]
     }
 
     // Manually set the remote pubkey and user to bypass verification
-    ;(signer as any).remotePubkey = remotePubkey
-    ;(signer as any).remoteUser = { pubkey: remotePubkey }
+    const signerProps = signer as {
+      remotePubkey?: string
+      remoteUser?: { pubkey: string }
+      bunkerUrl?: string
+      _isReady?: boolean
+      blockUntilReady?: () => Promise<{ pubkey: string }>
+    }
+    signerProps.remotePubkey = remotePubkey
+    signerProps.remoteUser = { pubkey: remotePubkey }
 
     // Set the bunker URL for the signer
-    ;(signer as any).bunkerUrl = cleanBunkerUrl
+    signerProps.bunkerUrl = cleanBunkerUrl
 
     // Override the blockUntilReady method to skip NIP-05 verification
-    const originalBlockUntilReady = signer.blockUntilReady.bind(signer)
-    signer.blockUntilReady = async (): Promise<any> => {
+    signerProps.blockUntilReady = async (): Promise<{ pubkey: string }> => {
       console.log("Custom blockUntilReady: skipping NIP-05 verification") // DEBUG
       // Manually set the required properties to simulate ready state
-      ;(signer as any)._isReady = true
+      signerProps._isReady = true
       // Return a mock user object
       return { pubkey: remotePubkey }
     }

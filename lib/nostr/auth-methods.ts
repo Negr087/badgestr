@@ -77,7 +77,7 @@ export async function loginWithBunker(bunkerUrl: string): Promise<AuthResult> {
     console.log("Remote pubkey extraído:", remotePubkey)
 
     const relay = url.searchParams.get("relay")
-    const secret = url.searchParams.get("secret")
+    const secret = url.searchParams.get("secret") // Used for bunker authentication
 
     console.log("Relay:", relay)
     console.log("Has secret:", !!secret)
