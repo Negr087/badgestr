@@ -13,6 +13,7 @@ import { NostrLoginDialog } from "@/components/nostr-login-dialog"
 import { useState } from "react"
 import { useBadges } from "@/hooks/use-badges"
 import { useBadgeAwards } from "@/hooks/use-badge-awards"
+import { useProfileBadges } from "@/hooks/use-profile-badges"
 import type { Badge } from "@/hooks/use-badges"
 import { useToast } from "@/hooks/use-toast"
 
@@ -28,8 +29,13 @@ export default function HomePage() {
   const { toast } = useToast()
   const { awardedBadges, isLoading: awardsLoading } = useBadgeAwards(
   filterMode === "myAwards" ? user?.pubkey : undefined
-  
 )
+const { profileBadges, refetch: refetchProfileBadges } = useProfileBadges(
+  filterMode === "myAwards" ? user?.pubkey : undefined
+)
+
+// Extraer badgeIds para filtrar
+const wornBadgeIds = profileBadges.map(b => b.badgeId)
 
 const handleCreateBadge = () => {
     if (!ndk.signer) {
@@ -186,7 +192,10 @@ const handleShowAll = () => {
   <BadgesGrid 
   badges={displayBadges}
   isLoading={filterMode === "myAwards" ? awardsLoading : badgesLoading}
-  onBadgeClick={setSelectedBadgeId} 
+  showWearButton={filterMode === "myAwards"}
+  profileBadges={profileBadges}
+  onBadgeClick={setSelectedBadgeId}
+  onWearToggle={filterMode === "myAwards" ? refetchProfileBadges : undefined}
 />
 </div>
       </main>

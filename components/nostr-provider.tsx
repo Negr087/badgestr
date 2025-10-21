@@ -155,7 +155,25 @@ export function NostrProvider({ children }: { children: ReactNode }) {
 
       const signer = new NDKNip07Signer()
       ndk.signer = signer
-      const user = await signer.user()
+      const user = await ndk.signer?.user()
+if (user) {
+  // Fetch relays del usuario (kind 10002)
+  const relayListEvents = await ndk.fetchEvents({
+    kinds: [10002],
+    authors: [user.pubkey],
+    limit: 1,
+  })
+  const relayList = Array.from(relayListEvents)[0]
+  if (relayList) {
+    // Agregar los relays del usuario a NDK
+    relayList.tags
+      .filter(t => t[0] === "r")
+      .forEach(t => {
+        const relayUrl = t[1]
+        ndk.addExplicitRelay(relayUrl)
+      })
+  }
+}
 
       const npub = nip19.npubEncode(user.pubkey)
       const userData = { pubkey: user.pubkey, npub }

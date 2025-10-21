@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNDK } from "@/components/nostr-provider"
 import { NDKKind, type NDKEvent } from "@nostr-dev-kit/ndk"
+import { buildBadgeId, normalizeBadgeIdentifier } from "@/lib/nostr/badge-id"
 
 export interface Badge {
   id: string
@@ -29,7 +30,7 @@ function parseBadgeFromEvent(event: NDKEvent): Badge {
   const thumb = getTag("thumb")
 
   return {
-    id: `${NDKKind.BadgeDefinition}:${event.pubkey}:${identifier}`,
+  id: buildBadgeId(NDKKind.BadgeDefinition, event.pubkey, identifier),
     identifier,
     name,
     description,

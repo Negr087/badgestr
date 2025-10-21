@@ -1,27 +1,40 @@
 "use client"
-
 import { useBadges } from "@/hooks/use-badges"
 import { BadgeCard } from "@/components/badge-card"
 import { Card } from "@/components/ui/card"
 import { BadgeCheck, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Badge } from "@/hooks/use-badges"
+import type { ProfileBadge } from "@/lib/nostr/profile-badges"
 
 interface BadgesGridProps {
   authorPubkey?: string
-  badges?: Badge[]  // AGREGAR
-  isLoading?: boolean  // AGREGAR
+  badges?: Badge[]
+  isLoading?: boolean
+  showWearButton?: boolean
+  profileBadges?: ProfileBadge[]
   onBadgeClick?: (badgeId: string) => void
+  onWearToggle?: () => Promise<void>
 }
 
-export function BadgesGrid({ authorPubkey, badges: externalBadges, isLoading: externalLoading, onBadgeClick }: BadgesGridProps) {
+export function BadgesGrid({
+  authorPubkey,
+  badges: externalBadges,
+  isLoading: externalLoading,
+  showWearButton = false,
+  profileBadges = [],
+  onBadgeClick,
+  onWearToggle,
+}: BadgesGridProps) {
   const { badges: fetchedBadges, isLoading: fetchLoading, error } = useBadges(
-    externalBadges ? undefined : authorPubkey  // Solo fetch si no hay badges externos
+    externalBadges ? undefined : authorPubkey
   )
-
-  // Usar badges externos si están disponibles, sino los fetched
+  
   const badges = externalBadges || fetchedBadges
   const isLoading = externalLoading !== undefined ? externalLoading : fetchLoading
+  
+  // Extraer solo badgeIds
+  const wornBadgeIds = profileBadges.map(b => b.badgeId)
 
   if (isLoading) {
     return (
@@ -64,7 +77,15 @@ export function BadgesGrid({ authorPubkey, badges: externalBadges, isLoading: ex
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {badges.map((badge) => (
-        <BadgeCard key={badge.id} badge={badge} onClick={() => onBadgeClick?.(badge.id)} />
+        <BadgeCard
+          key={badge.id}
+          badge={badge}
+          onClick={() => onBadgeClick?.(badge.id)}
+          showWearButton={showWearButton}
+          isWorn={wornBadgeIds.includes(badge.id)}
+          profileBadges={profileBadges}
+          onWearToggle={onWearToggle}
+        />
       ))}
     </div>
   )
