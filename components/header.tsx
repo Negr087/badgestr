@@ -33,7 +33,7 @@ export function Header({ onCreateBadge, onShowMyBadges, onShowMyAwards, onShowAl
           className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <BadgeCheck className="h-6 w-6 text-primary" />
-          <span className="font-bold text-xl">Nostr Badges</span>
+          <span className="font-bold text-xl">Nostr Badgy</span>
         </div>
 
         {user && (
