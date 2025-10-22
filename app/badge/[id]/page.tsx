@@ -87,11 +87,11 @@ export default function BadgePage() {
 
   // Si el usuario ya está logueado, usar su pubkey
   useEffect(() => {
-    if (user?.pubkey) {
-      setRecipientPubkey(user.pubkey)
-      setNpubOrNip05(user.npub)
-    }
-  }, [user])
+  if (user?.pubkey) {
+    setRecipientPubkey(user.pubkey)  // ✓ Esto YA está bien
+    setNpubOrNip05(user.npub || nip19.npubEncode(user.pubkey))  // ✓ Esto también
+  }
+}, [user])
 
   const handleValidateInput = async () => {
     try {
@@ -112,21 +112,30 @@ export default function BadgePage() {
       }
 
       // Validar NIP-05
-      if (input.includes("@")) {
-        const [name, domain] = input.split("@")
-        const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
-        const data = await response.json()
-        
-        if (data.names && data.names[name]) {
-          setRecipientPubkey(data.names[name])
-          toast({
-            title: "Valid NIP-05",
-            description: "You can now claim the badge",
-          })
-          return
-        }
-        throw new Error("NIP-05 not found")
-      }
+if (input.includes("@")) {
+  try {
+    const [name, domain] = input.split("@")
+    const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch NIP-05")
+    }
+    
+    const data = await response.json()
+    
+    if (data.names && data.names[name]) {
+      setRecipientPubkey(data.names[name])
+      toast({
+        title: "Valid NIP-05",
+        description: "You can now claim the badge",
+      })
+      return
+    }
+    throw new Error("NIP-05 not found")
+  } catch (error) {
+    throw new Error("Could not verify NIP-05: " + (error as Error).message)
+  }
+}
 
       // Validar hex pubkey
       if (/^[0-9a-f]{64}$/i.test(input)) {
@@ -150,7 +159,17 @@ export default function BadgePage() {
   }
 
   const handleClaim = async () => {
-    if (!badge || !recipientPubkey) return
+  if (!badge || !recipientPubkey) return
+
+  // Verificar que recipientPubkey sea hex válido
+  if (!/^[0-9a-f]{64}$/i.test(recipientPubkey)) {
+    toast({
+      title: "Invalid pubkey",
+      description: "Please validate your NIP-05 or npub first",
+      variant: "destructive",
+    })
+    return
+  }
 
     // Verificar si el usuario tiene signer (está logueado con capacidad de firmar)
     if (!userNdk?.signer) {

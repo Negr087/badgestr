@@ -29,34 +29,14 @@ export function NostrProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<NostrUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [ndk] = useState<NDK>(() => {
-    // Monkey-patch global fetch to block NIP-05 requests permanently
-    const originalFetch = global.fetch
-    global.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input.toString()
-      if (url.includes('/.well-known/nostr.json')) {
-        console.log("Blocked NIP-05 request to:", url) // DEBUG
-        return Promise.reject(new Error('NIP-05 disabled for bunker'))
-      }
-      return originalFetch(input, init)
-    }) as typeof fetch
-
-    const ndkInstance = new NDK({
-      explicitRelayUrls: DEFAULT_RELAYS,
-      enableOutboxModel: false,
-    })
-
-    // Suppress NIP-05 verification errors by overriding console.error temporarily
-    const originalError = console.error
-    console.error = (...args: unknown[]) => {
-      const message = args[0]?.toString() || ""
-      // Filter out NIP-05 fetch errors
-      if (!message.includes("Failed to fetch NIP05")) {
-        originalError.apply(console, args)
-      }
-    }
-
-    return ndkInstance
+  const ndkInstance = new NDK({
+    explicitRelayUrls: DEFAULT_RELAYS,
+    enableOutboxModel: false,
+    autoConnectUserRelays: false,
   })
+
+  return ndkInstance
+})
 
   useEffect(() => {
   async function initialize() {
