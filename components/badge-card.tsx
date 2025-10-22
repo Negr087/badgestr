@@ -46,25 +46,23 @@ export function BadgeCard({
   const [isToggling, setIsToggling] = useState(false)
 
   const handleToggleWear = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    
-    if (!user || !badge.awardId) return
+  e.stopPropagation()
+  
+  if (!user || !badge.awardId) return
 
-    setIsToggling(true)
-    try {
-      await toggleProfileBadge(
-        ndk, 
-        badge.id, 
-        badge.awardId,
-        isWorn ? "remove" : "add", 
-        profileBadges
-      )
-      
-      await new Promise(resolve => setTimeout(resolve, 1500))
+  setIsToggling(true)
+  try {
+    await toggleProfileBadge(
+      ndk, 
+      badge.id, 
+      badge.awardId,
+      isWorn ? "remove" : "add", 
+      profileBadges
+    )
       
       if (onWearToggle) {
-        await onWearToggle()
-      }
+      await onWearToggle()
+    }
       
       toast({
         title: isWorn ? "Badge hidden" : "Badge visible",

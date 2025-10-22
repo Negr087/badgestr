@@ -42,7 +42,7 @@ export function NostrProvider({ children }: { children: ReactNode }) {
 
     const ndkInstance = new NDK({
       explicitRelayUrls: DEFAULT_RELAYS,
-      enableOutboxModel: false, // Disable outbox model to reduce automatic fetches
+      enableOutboxModel: false,
     })
 
     // Suppress NIP-05 verification errors by overriding console.error temporarily

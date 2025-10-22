@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNDK } from "@/components/nostr-provider"
 import { normalizeBadgeId } from "@/lib/nostr/badge-id"
 import type { ProfileBadge } from "@/lib/nostr/profile-badges"
@@ -10,17 +10,26 @@ export function useProfileBadges(userPubkey: string | null | undefined) {
   const [isLoading, setIsLoading] = useState(true)
   const { ndk } = useNDK()
 
-  const refetch = async () => {
-    if (!userPubkey || !ndk) return
-    
-    await new Promise(r => setTimeout(r, 1000))
-    
+  const refetch = useCallback(async () => {
+  if (!userPubkey || !ndk) return
+
+    setIsLoading(true)
+
     try {
-      const events = await ndk.fetchEvents({
+      console.log("Fetching profile badges for:", userPubkey)
+      const eventsPromise = ndk.fetchEvents({
         kinds: [30008],
         authors: [userPubkey],
-        limit: 10,
+        limit: 5, // Reducir límite ya que solo necesitamos el más reciente
       })
+
+      // Timeout para evitar loading eterno
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Profile badges fetch timeout')), 8000)
+      )
+
+      const events = await Promise.race([eventsPromise, timeoutPromise])
+      console.log("Found profile badge events:", events.size)
 
       const profileBadgeEvents = Array.from(events)
         .filter((e: any) => {
@@ -57,9 +66,12 @@ export function useProfileBadges(userPubkey: string | null | undefined) {
       console.log("Refetched profile badges:", badges)
       setProfileBadges(badges)
     } catch (err) {
-      console.error("Failed to refetch profile badges:", err)
-    }
+    console.error("Failed to refetch profile badges:", err)
+    setProfileBadges([]) // Set empty array on error
+  } finally {
+    setIsLoading(false)
   }
+}, [userPubkey, ndk])
 
   useEffect(() => {
     if (!userPubkey) {
@@ -69,7 +81,7 @@ export function useProfileBadges(userPubkey: string | null | undefined) {
     }
 
     refetch()
-  }, [userPubkey, ndk])
+  }, [userPubkey, ndk, refetch])
 
   return { profileBadges, isLoading, refetch }
 }

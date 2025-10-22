@@ -10,7 +10,7 @@ import { BadgeDetailModal } from "@/components/badge-detail-modal"
 import { CreateBadgeDialog } from "@/components/create-badge-dialog"
 import { AwardBadgeDialog } from "@/components/award-badge-dialog"
 import { NostrLoginDialog } from "@/components/nostr-login-dialog"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useBadges } from "@/hooks/use-badges"
 import { useBadgeAwards } from "@/hooks/use-badge-awards"
 import { useProfileBadges } from "@/hooks/use-profile-badges"
@@ -33,6 +33,18 @@ export default function HomePage() {
 const { profileBadges, refetch: refetchProfileBadges } = useProfileBadges(
   filterMode === "myAwards" ? user?.pubkey : undefined
 )
+
+
+  const [localProfileBadges, setLocalProfileBadges] = useState(profileBadges)
+  
+  useEffect(() => {
+    setLocalProfileBadges(profileBadges)
+  }, [profileBadges])
+
+  const handleWearToggle = async () => {
+    await new Promise(r => setTimeout(r, 500))
+    await refetchProfileBadges()
+  }
 
 // Extraer badgeIds para filtrar (used for filtering logic)
 const wornBadgeIds = profileBadges.map(b => b.badgeId)
@@ -193,9 +205,9 @@ const handleShowAll = () => {
   badges={displayBadges}
   isLoading={filterMode === "myAwards" ? awardsLoading : badgesLoading}
   showWearButton={filterMode === "myAwards"}
-  profileBadges={profileBadges}
+  profileBadges={localProfileBadges}  // ← Usar local
   onBadgeClick={setSelectedBadgeId}
-  onWearToggle={filterMode === "myAwards" ? refetchProfileBadges : undefined}
+  onWearToggle={filterMode === "myAwards" ? handleWearToggle : undefined}
 />
 </div>
       </main>
