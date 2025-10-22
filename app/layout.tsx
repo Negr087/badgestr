@@ -11,7 +11,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Badgestr",
-  description: "Create and manage Nostr badges",
+  description: "Create and manage badges",
   generator: "v0.app",
 }
 
