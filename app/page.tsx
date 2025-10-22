@@ -105,7 +105,7 @@ const handleShowAll = () => {
                 <Sparkles className="h-8 w-8 text-accent absolute -top-2 -right-2 animate-pulse" />
               </div>
             </div>
-            <h1 className="text-5xl font-bold tracking-tight text-balance">Nostr Badges</h1>
+            <h1 className="text-5xl font-bold tracking-tight text-balance">Nostr Badgy</h1>
             <p className="text-xl text-muted-foreground text-pretty">
               Create, manage, and award badges on the Nostr protocol
             </p>
