@@ -161,7 +161,6 @@ if (input.includes("@")) {
   const handleClaim = async () => {
   if (!badge || !recipientPubkey) return
 
-  // Validar que recipientPubkey sea hex válido
   if (!/^[0-9a-f]{64}$/i.test(recipientPubkey)) {
     toast({
       title: "Invalid pubkey",
@@ -173,60 +172,31 @@ if (input.includes("@")) {
 
    setIsClaiming(true)
   try {
-    // Solo el CREADOR puede otorgar badges
-    // Si el usuario actual NO es el creador, crear solicitud
-    if (!user || user.pubkey !== badge.creator) {
-      // Enviar evento kind 1 (nota) mencionando al creador solicitando el badge
-      const requestEvent = new NDKEvent(ndk)
-      requestEvent.kind = 1
-      requestEvent.content = `I'm requesting the badge: ${badge.name}\n\nnostr:${nip19.naddrEncode({
-  identifier: badge.identifier,
-  pubkey: badge.creator,
-  kind: 30009,
-})}`
-      requestEvent.tags = [
-        ["p", badge.creator], // Mencionar al creador
-        ["a", badge.id], // Referencia al badge
-      ]
+    const response = await fetch("/api/claim-badge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        badgeId: badge.id,
+        recipientPubkey,
+      }),
+    })
 
-      // Intentar firmar con extensión
-      if (window.nostr) {
-        const { NDKNip07Signer } = await import("@nostr-dev-kit/ndk")
-        ndk.signer = new NDKNip07Signer()
-        await requestEvent.sign()
-        await requestEvent.publish()
-      }
+    const data = await response.json()
 
-      toast({
-        title: "Badge request sent!",
-        description: "The badge creator will review your request and award you the badge.",
-      })
-      setClaimSuccess(true)
-      return
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to claim badge")
     }
-
-    // Si eres el creador, otorgar directamente
-    const awardEvent = new NDKEvent(userNdk!)
-    awardEvent.kind = 8
-    awardEvent.tags = [
-      ["a", badge.id],
-      ["p", recipientPubkey],
-    ]
-    awardEvent.content = ""
-
-    await awardEvent.sign()
-    await awardEvent.publish()
 
     setClaimSuccess(true)
     toast({
-      title: "Badge awarded!",
-      description: "The badge has been successfully awarded.",
+      title: "Badge claimed!",
+      description: "The badge has been awarded to your account",
     })
   } catch (error) {
     console.error("Failed to claim badge:", error)
     toast({
       title: "Error",
-      description: error instanceof Error ? error.message : "Failed to process request",
+      description: error instanceof Error ? error.message : "Failed to claim badge",
       variant: "destructive",
     })
   } finally {
