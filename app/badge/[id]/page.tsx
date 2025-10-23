@@ -159,64 +159,80 @@ if (input.includes("@")) {
   }
 
   const handleClaim = async () => {
-  console.log("🎯 handleClaim called")  // AGREGAR
-  console.log("🔍 recipientPubkey:", recipientPubkey)  // AGREGAR
-  console.log("🔍 user:", user)  // AGREGAR
-  
   if (!badge || !recipientPubkey) return
 
-  // ✓✓✓ VALIDACIÓN CRÍTICA
+  // Validar que recipientPubkey sea hex válido
   if (!/^[0-9a-f]{64}$/i.test(recipientPubkey)) {
-    console.error("❌ recipientPubkey no es hex válido:", recipientPubkey)
     toast({
-      title: "Error",
-      description: "Invalid pubkey format. Please validate your input first.",
+      title: "Invalid pubkey",
+      description: "Please validate your input first",
       variant: "destructive",
     })
     return
   }
 
-    // Verificar si el usuario tiene signer (está logueado con capacidad de firmar)
-    if (!userNdk?.signer) {
+   setIsClaiming(true)
+  try {
+    // Solo el CREADOR puede otorgar badges
+    // Si el usuario actual NO es el creador, crear solicitud
+    if (!user || user.pubkey !== badge.creator) {
+      // Enviar evento kind 1 (nota) mencionando al creador solicitando el badge
+      const requestEvent = new NDKEvent(ndk)
+      requestEvent.kind = 1
+      requestEvent.content = `I'm requesting the badge: ${badge.name}\n\nnostr:${nip19.naddrEncode({
+  identifier: badge.identifier,
+  pubkey: badge.creator,
+  kind: 30009,
+})}`
+      requestEvent.tags = [
+        ["p", badge.creator], // Mencionar al creador
+        ["a", badge.id], // Referencia al badge
+      ]
+
+      // Intentar firmar con extensión
+      if (window.nostr) {
+        const { NDKNip07Signer } = await import("@nostr-dev-kit/ndk")
+        ndk.signer = new NDKNip07Signer()
+        await requestEvent.sign()
+        await requestEvent.publish()
+      }
+
       toast({
-        title: "Badge claim pending",
-        description: "The badge creator will send you this badge. Check your Nostr client later to accept it.",
+        title: "Badge request sent!",
+        description: "The badge creator will review your request and award you the badge.",
       })
       setClaimSuccess(true)
-      // Aquí podrías enviar una notificación al creador del badge
       return
     }
 
-    setIsClaiming(true)
-    try {
-      // Crear evento de award (kind 8)
-      const awardEvent = new NDKEvent(userNdk)
-      awardEvent.kind = 8 // Badge Award
-      awardEvent.tags = [
-        ["a", badge.id], // Referencia al badge
-        ["p", recipientPubkey], // Receptor
-      ]
-      awardEvent.content = ""
+    // Si eres el creador, otorgar directamente
+    const awardEvent = new NDKEvent(userNdk!)
+    awardEvent.kind = 8
+    awardEvent.tags = [
+      ["a", badge.id],
+      ["p", recipientPubkey],
+    ]
+    awardEvent.content = ""
 
-      await awardEvent.sign()
-      await awardEvent.publish()
+    await awardEvent.sign()
+    await awardEvent.publish()
 
-      setClaimSuccess(true)
-      toast({
-        title: "Badge claimed!",
-        description: "The badge has been awarded to your account",
-      })
-    } catch (error) {
-      console.error("Failed to claim badge:", error)
-      toast({
-        title: "Error",
-        description: "Failed to claim badge. The creator will need to award it manually.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsClaiming(false)
-    }
+    setClaimSuccess(true)
+    toast({
+      title: "Badge awarded!",
+      description: "The badge has been successfully awarded.",
+    })
+  } catch (error) {
+    console.error("Failed to claim badge:", error)
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to process request",
+      variant: "destructive",
+    })
+  } finally {
+    setIsClaiming(false)
   }
+}
 
   if (isLoading) {
     return (
