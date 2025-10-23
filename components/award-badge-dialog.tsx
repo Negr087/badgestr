@@ -14,6 +14,7 @@ import { Loader2, Award, Plus, X } from "lucide-react"
 import type { Badge } from "@/hooks/use-badges"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
+import { nip19 } from "nostr-tools"
 
 interface AwardBadgeDialogProps {
   badge: Badge | null
@@ -43,56 +44,96 @@ export function AwardBadgeDialog({ badge, open, onOpenChange, onSuccess }: Award
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!badge) return
+  e.preventDefault()
+  if (!badge) return
 
-    setIsSubmitting(true)
+  setIsSubmitting(true)
 
-    try {
-      const validRecipients = recipients.filter((r) => r.trim().length > 0)
+  try {
+    const validRecipients = recipients.filter((r) => r.trim().length > 0)
 
-      if (validRecipients.length === 0) {
-        toast({
-          title: "No recipients",
-          description: "Please add at least one recipient pubkey",
-          variant: "destructive",
-        })
-        setIsSubmitting(false)
-        return
-      }
-
-      const event = new NDKEvent(ndk)
-      event.kind = NDKKind.BadgeAward
-      event.tags = [["a", badge.id]]
-
-      validRecipients.forEach((pubkey) => {
-        event.tags.push(["p", pubkey])
-      })
-
-      event.content = ""
-
-      await event.sign()
-      await event.publish()
-
+    if (validRecipients.length === 0) {
       toast({
-        title: "Badge Awarded!",
-        description: `Successfully awarded "${badge.name}" to ${validRecipients.length} recipient(s)`,
-      })
-
-      setRecipients([""])
-      onOpenChange(false)
-      onSuccess?.()
-    } catch (error) {
-      console.error("Failed to award badge:", error)
-      toast({
-        title: "Failed to award badge",
-        description: error instanceof Error ? error.message : "An error occurred",
+        title: "No recipients",
+        description: "Please add at least one recipient pubkey",
         variant: "destructive",
       })
-    } finally {
       setIsSubmitting(false)
+      return
     }
+
+    // ✓✓✓ AGREGAR VALIDACIÓN Y CONVERSIÓN
+    const resolvedPubkeys: string[] = []
+    
+    for (const recipient of validRecipients) {
+      const input = recipient.trim()
+      let pubkeyHex: string
+
+      // Validar npub
+      if (input.startsWith("npub1")) {
+        const decoded = nip19.decode(input)
+        if (decoded.type !== "npub") {
+          throw new Error(`Invalid npub format: ${input}`)
+        }
+        pubkeyHex = decoded.data as string
+      }
+      // Validar NIP-05
+      else if (input.includes("@")) {
+        const [name, domain] = input.split("@")
+        const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
+        if (!response.ok) {
+          throw new Error(`Failed to resolve NIP-05: ${input}`)
+        }
+        const data = await response.json()
+        
+        if (!data.names || !data.names[name]) {
+          throw new Error(`NIP-05 not found: ${input}`)
+        }
+        pubkeyHex = data.names[name]
+      }
+      // Validar hex pubkey
+      else if (/^[0-9a-f]{64}$/i.test(input)) {
+        pubkeyHex = input.toLowerCase()
+      }
+      else {
+        throw new Error(`Invalid format: ${input}. Use npub, NIP-05, or hex pubkey`)
+      }
+
+      resolvedPubkeys.push(pubkeyHex)
+    }
+
+      const event = new NDKEvent(ndk)
+    event.kind = NDKKind.BadgeAward
+    event.tags = [["a", badge.id]]
+
+    resolvedPubkeys.forEach((pubkey) => {
+      event.tags.push(["p", pubkey])
+    })
+
+    event.content = ""
+
+    await event.sign()
+    await event.publish()
+
+    toast({
+      title: "Badge Awarded!",
+      description: `Successfully awarded "${badge.name}" to ${resolvedPubkeys.length} recipient(s)`,
+    })
+
+    setRecipients([""])
+    onOpenChange(false)
+    onSuccess?.()
+  } catch (error) {
+    console.error("Failed to award badge:", error)
+    toast({
+      title: "Failed to award badge",
+      description: error instanceof Error ? error.message : "An error occurred",
+      variant: "destructive",
+    })
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   if (!badge) return null
 

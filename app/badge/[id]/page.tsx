@@ -94,48 +94,47 @@ export default function BadgePage() {
 }, [user])
 
   const handleValidateInput = async () => {
-    try {
-      const input = npubOrNip05.trim()
-
-      // Validar npub
-      if (input.startsWith("npub1")) {
-        const decoded = nip19.decode(input)
-        if (decoded.type !== "npub") {
-          throw new Error("Invalid npub format")
-        }
-        setRecipientPubkey(decoded.data as string)
-        toast({
-          title: "Valid npub",
-          description: "You can now claim the badge",
-        })
-        return
-      }
-
-      // Validar NIP-05
-if (input.includes("@")) {
+  console.log("🚀 handleValidateInput called with:", npubOrNip05)  // AGREGAR
   try {
-    const [name, domain] = input.split("@")
-    const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
-    
-    if (!response.ok) {
-      throw new Error("Failed to fetch NIP-05")
-    }
-    
-    const data = await response.json()
-    
-    if (data.names && data.names[name]) {
-      setRecipientPubkey(data.names[name])
+    const input = npubOrNip05.trim()
+
+    // Validar npub
+    if (input.startsWith("npub1")) {
+      const decoded = nip19.decode(input)
+      if (decoded.type !== "npub") {
+        throw new Error("Invalid npub format")
+      }
+      const pubkeyHex = decoded.data as string
+      console.log("✅ npub decoded to:", pubkeyHex)  // AGREGAR
+      setRecipientPubkey(pubkeyHex)
       toast({
-        title: "Valid NIP-05",
+        title: "Valid npub",
         description: "You can now claim the badge",
       })
       return
     }
-    throw new Error("NIP-05 not found")
-  } catch (error) {
-    throw new Error("Could not verify NIP-05: " + (error as Error).message)
-  }
-}
+
+      // Validar NIP-05
+if (input.includes("@")) {
+      console.log("🔍 Validating NIP-05:", input)  // AGREGAR
+      const [name, domain] = input.split("@")
+      const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
+      const data = await response.json()
+      
+      console.log("📦 NIP-05 response:", data)  // AGREGAR
+      
+      if (data.names && data.names[name]) {
+        const pubkeyHex = data.names[name]
+        console.log("✅ NIP-05 resolved to:", pubkeyHex)  // AGREGAR
+        setRecipientPubkey(pubkeyHex)
+        toast({
+          title: "Valid NIP-05",
+          description: "You can now claim the badge",
+        })
+        return
+      }
+      throw new Error("NIP-05 not found")
+    }
 
       // Validar hex pubkey
       if (/^[0-9a-f]{64}$/i.test(input)) {
@@ -149,6 +148,7 @@ if (input.includes("@")) {
 
       throw new Error("Invalid format. Use npub, NIP-05, or hex pubkey")
     } catch (error) {
+      console.error("❌ Validation error:", error)
       toast({
         title: "Invalid input",
         description: (error as Error).message,
@@ -159,13 +159,18 @@ if (input.includes("@")) {
   }
 
   const handleClaim = async () => {
+  console.log("🎯 handleClaim called")  // AGREGAR
+  console.log("🔍 recipientPubkey:", recipientPubkey)  // AGREGAR
+  console.log("🔍 user:", user)  // AGREGAR
+  
   if (!badge || !recipientPubkey) return
 
-  // Verificar que recipientPubkey sea hex válido
+  // ✓✓✓ VALIDACIÓN CRÍTICA
   if (!/^[0-9a-f]{64}$/i.test(recipientPubkey)) {
+    console.error("❌ recipientPubkey no es hex válido:", recipientPubkey)
     toast({
-      title: "Invalid pubkey",
-      description: "Please validate your NIP-05 or npub first",
+      title: "Error",
+      description: "Invalid pubkey format. Please validate your input first.",
       variant: "destructive",
     })
     return
