@@ -66,7 +66,7 @@ const handleCreateBadge = () => {
 // Determinar qué badges mostrar según el filtro:
 const displayBadges = filterMode === "myAwards" ? awardedBadges : badges
 
-  const selectedBadge = badges.find((b) => b.id === selectedBadgeId) || null
+  const selectedBadge = displayBadges.find((b) => b.id === selectedBadgeId) || null
 
   const handleShowMyBadges = () => {
   setFilterMode("myBadges")
