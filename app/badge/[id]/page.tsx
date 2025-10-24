@@ -16,7 +16,6 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { UserDisplayName } from "@/components/ui/user-display-name"
 import Link from "next/link"
 import { nip19 } from "nostr-tools"
-import { NDKEvent } from "@nostr-dev-kit/ndk"
 
 export default function BadgePage() {
   const params = useParams()

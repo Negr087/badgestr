@@ -47,9 +47,6 @@ const { profileBadges, refetch: refetchProfileBadges } = useProfileBadges(
     await refetchProfileBadges()
   }
 
-// Extraer badgeIds para filtrar (used for filtering logic)
-const wornBadgeIds = profileBadges.map(b => b.badgeId)
-
 const handleCreateBadge = () => {
     if (!ndk.signer) {
       toast({

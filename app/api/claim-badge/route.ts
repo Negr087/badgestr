@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { nip19, getPublicKey, finalizeEvent, generateSecretKey } from "nostr-tools"
+import { nip19, finalizeEvent } from "nostr-tools"
 import NDK, { NDKEvent } from "@nostr-dev-kit/ndk"
 
 export async function POST(request: NextRequest) {
