@@ -7,6 +7,7 @@ import { BadgeCheck, Sparkles, QrCode } from "lucide-react"
 import { Header } from "@/components/header"
 import { BadgesGrid } from "@/components/badges-grid"
 import { BadgeDetailModal } from "@/components/badge-detail-modal"
+import type { BadgeWithAward } from "@/hooks/use-badge-awards"
 import { CreateBadgeDialog } from "@/components/create-badge-dialog"
 import { AwardBadgeDialog } from "@/components/award-badge-dialog"
 import { NostrLoginDialog } from "@/components/nostr-login-dialog"
@@ -22,7 +23,7 @@ export default function HomePage() {
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [awardDialogOpen, setAwardDialogOpen] = useState(false)
-  const [badgeToAward, setBadgeToAward] = useState<Badge | null>(null)
+  const [badgeToAward, setBadgeToAward] = useState<Badge | BadgeWithAward | null>(null)
   const [loginDialogOpen, setLoginDialogOpen] = useState(false)
   const [filterMode, setFilterMode] = useState<"all" | "myBadges" | "myAwards">("all")
   const { badges, isLoading: badgesLoading } = useBadges(filterMode === "myBadges" ? user?.pubkey : undefined)

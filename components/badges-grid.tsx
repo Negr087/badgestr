@@ -77,16 +77,16 @@ export function BadgesGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {badges.map((badge) => (
-        <BadgeCard
-          key={badge.id}
-          badge={badge}
-          onClick={() => onBadgeClick?.(badge.id)}
-          showWearButton={showWearButton}
-          isWorn={wornBadgeIds.includes(badge.id)}
-          profileBadges={profileBadges}
-          onWearToggle={onWearToggle}
-        />
-      ))}
+  <BadgeCard
+    key={(badge as any).awardId || badge.id}
+    badge={badge}
+    onClick={() => onBadgeClick?.(badge.id)}
+    showWearButton={showWearButton}
+    isWorn={wornBadgeIds.includes(badge.id)}
+    profileBadges={profileBadges}
+    onWearToggle={onWearToggle}
+  />
+))}
     </div>
   )
 }

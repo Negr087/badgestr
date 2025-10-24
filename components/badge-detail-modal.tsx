@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { Badge as BadgeType } from "@/hooks/use-badges"
+import type { BadgeWithAward } from "@/hooks/use-badge-awards"
 import { QRCodeSVG } from "qrcode.react"
 import { Download, Copy, Award, BadgeCheck, Calendar } from "lucide-react"
 import { format } from "date-fns"
@@ -16,10 +17,10 @@ import { useProfile } from "@/hooks/use-profile"
 import Image from "next/image"
 
 interface BadgeDetailModalProps {
-  badge: BadgeType | null
+  badge: BadgeType | BadgeWithAward | null  // ← Permitir ambos tipos
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAwardClick?: (badge: BadgeType) => void
+  onAwardClick?: (badge: BadgeType | BadgeWithAward) => void  // ← Aquí también
 }
 
 export function BadgeDetailModal({ badge, open, onOpenChange, onAwardClick }: BadgeDetailModalProps) {
