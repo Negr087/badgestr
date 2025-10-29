@@ -355,54 +355,25 @@ const user = await signer.user()
       throw new Error("Amber is only available on Android devices")
     }
 
-    // Limpiar flag de autorización previa
-    localStorage.removeItem("amber_authorized")
+    // Generar un signer local temporal para esta sesión
+    const localSigner = NDKPrivateKeySigner.generate()
+    const localUser = await localSigner.user()
+    
+    console.log("Generated local signer, requesting pubkey from Amber...")
 
-    // Construir la URL de callback a tu app
+    // Preparar el intent para obtener la pubkey de Amber
     const callbackUrl = `${window.location.origin}/amber-callback`
     
-    // Construir el intent de Amber con callback
-    const permissions = ["sign_event", "nip04_encrypt", "nip04_decrypt", "nip44_encrypt", "nip44_decrypt"]
-    const intentUrl = `intent:#Intent;scheme=nostrsigner;S.compressionType=none;S.returnType=signature;S.type=get_public_key;S.callbackUrl=${encodeURIComponent(callbackUrl)};S.permissions=${encodeURIComponent(JSON.stringify(permissions))};package=com.greenart7c3.nostrsigner;end`
+    // Construir el intent según la documentación de Amber
+    const intentUrl = `intent:#Intent;scheme=nostrsigner;S.compressionType=none;S.returnType=signature;S.type=get_public_key;S.callbackUrl=${encodeURIComponent(callbackUrl)};S.permissions=${encodeURIComponent(JSON.stringify(["sign_event", "nip04_encrypt", "nip04_decrypt", "nip44_encrypt", "nip44_decrypt"]))};package=com.greenart7c3.nostrsigner;end`
+
+    // Guardar el local signer para usarlo después
+    localStorage.setItem("amber_local_signer", JSON.stringify(Array.from(localUser.pubkey)))
+    localStorage.setItem("amber_pending", "true")
     
     // Abrir Amber
     window.location.href = intentUrl
     
-    // Esperar a que el usuario vuelva y window.nostr esté disponible
-    const waitForAmber = () => new Promise<void>((resolve, reject) => {
-      let attempts = 0
-      const maxAttempts = 300 // 30 segundos
-      
-      const interval = setInterval(() => {
-        attempts++
-        
-        // Revisar si volvió de Amber y window.nostr está disponible
-        const authorized = localStorage.getItem("amber_authorized")
-        
-        if (authorized && window.nostr) {
-          clearInterval(interval)
-          localStorage.removeItem("amber_authorized")
-          resolve()
-        } else if (attempts >= maxAttempts) {
-          clearInterval(interval)
-          reject(new Error("Timeout waiting for Amber connection"))
-        }
-      }, 100)
-    })
-
-    await waitForAmber()
-
-    const signer = new NDKNip07Signer()
-    ndk.signer = signer
-    const user = await signer.user()
-
-    const npub = nip19.npubEncode(user.pubkey)
-    const userData = { pubkey: user.pubkey, npub }
-
-    setUser(userData)
-    localStorage.setItem("nostr_pubkey", user.pubkey)
-    localStorage.setItem("nostr_npub", npub)
-    localStorage.setItem("nostr_method", "amber")
   } catch (err) {
     throw new Error("Failed to connect with Amber: " + (err as Error).message)
   }

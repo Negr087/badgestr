@@ -18,62 +18,66 @@ import { useProfileBadges } from "@/hooks/use-profile-badges"
 import type { Badge } from "@/hooks/use-badges"
 import { useToast } from "@/hooks/use-toast"
 
-// Hook para detectar si venimos de Amber
 function useAmberConnection() {
-  const { loginWithNip07, user } = useNostr()
+  const { user, ndk, login } = useNostr()
   const { toast } = useToast()
   const [attemptingAmber, setAttemptingAmber] = useState(false)
 
   useEffect(() => {
     const amberAuthorized = localStorage.getItem("amber_authorized")
+    const amberPubkey = localStorage.getItem("amber_pubkey")
+    const amberError = localStorage.getItem("amber_error")
     
-    if (amberAuthorized && !user) {
-      setAttemptingAmber(true)
-      console.log("Detected Amber authorization, attempting connection...")
-
-      // Intentar conectar varias veces hasta que window.nostr esté disponible
-      let attempts = 0
-      const maxAttempts = 50 // 5 segundos
-
-      const tryConnect = async () => {
-        attempts++
-        
-        if (window.nostr) {
-          console.log("window.nostr found, connecting...")
-          try {
-            await loginWithNip07()
-            localStorage.removeItem("amber_authorized")
-            toast({
-              title: "Connected!",
-              description: "Successfully connected with Amber",
-            })
-          } catch (err) {
-            console.error("Failed to connect with Amber:", err)
-            toast({
-              title: "Connection failed",
-              description: "Could not complete Amber connection",
-              variant: "destructive",
-            })
-          } finally {
-            setAttemptingAmber(false)
-          }
-        } else if (attempts < maxAttempts) {
-          setTimeout(tryConnect, 100)
-        } else {
-          console.error("Timeout waiting for window.nostr")
-          localStorage.removeItem("amber_authorized")
-          setAttemptingAmber(false)
-          toast({
-            title: "Connection timeout",
-            description: "Amber did not respond. Please try again.",
-            variant: "destructive",
-          })
-        }
-      }
-
-      tryConnect()
+    if (amberError) {
+      toast({
+        title: "Connection failed",
+        description: amberError,
+        variant: "destructive",
+      })
+      localStorage.removeItem("amber_error")
+      localStorage.removeItem("amber_authorized")
+      return
     }
-  }, [user, loginWithNip07, toast])
+
+    if (amberAuthorized && amberPubkey && !user) {
+      setAttemptingAmber(true)
+      console.log("Completing Amber connection with pubkey:", amberPubkey)
+
+      try {
+        // Importar nip19
+        import("nostr-tools").then(({ nip19 }) => {
+          const npub = nip19.npubEncode(amberPubkey)
+          const userData = { pubkey: amberPubkey, npub }
+
+          // Guardar el usuario
+          login(userData)
+          localStorage.setItem("nostr_pubkey", amberPubkey)
+          localStorage.setItem("nostr_npub", npub)
+          localStorage.setItem("nostr_method", "amber")
+
+          // Limpiar flags temporales
+          localStorage.removeItem("amber_authorized")
+          localStorage.removeItem("amber_pubkey")
+          localStorage.removeItem("amber_local_signer")
+
+          toast({
+            title: "Connected!",
+            description: "Successfully connected with Amber",
+          })
+        }).finally(() => {
+          setAttemptingAmber(false)
+        })
+      } catch (err) {
+        console.error("Failed to complete Amber connection:", err)
+        toast({
+          title: "Connection failed",
+          description: "Could not complete Amber connection",
+          variant: "destructive",
+        })
+        setAttemptingAmber(false)
+      }
+    }
+  }, [user, login, toast])
 
   return attemptingAmber
 }
