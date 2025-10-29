@@ -355,24 +355,37 @@ const user = await signer.user()
       throw new Error("Amber is only available on Android devices")
     }
 
-    // Esperar a que Amber inyecte window.nostr
+    // Limpiar flag de autorización previa
+    localStorage.removeItem("amber_authorized")
+
+    // Construir la URL de callback a tu app
+    const callbackUrl = `${window.location.origin}/amber-callback`
+    
+    // Construir el intent de Amber con callback
+    const permissions = ["sign_event", "nip04_encrypt", "nip04_decrypt", "nip44_encrypt", "nip44_decrypt"]
+    const intentUrl = `intent:#Intent;scheme=nostrsigner;S.compressionType=none;S.returnType=signature;S.type=get_public_key;S.callbackUrl=${encodeURIComponent(callbackUrl)};S.permissions=${encodeURIComponent(JSON.stringify(permissions))};package=com.greenart7c3.nostrsigner;end`
+    
+    // Abrir Amber
+    window.location.href = intentUrl
+    
+    // Esperar a que el usuario vuelva y window.nostr esté disponible
     const waitForAmber = () => new Promise<void>((resolve, reject) => {
-      if (window.nostr) {
-        resolve()
-        return
-      }
-      
       let attempts = 0
-      const maxAttempts = 100 // 10 segundos
+      const maxAttempts = 300 // 30 segundos
       
       const interval = setInterval(() => {
         attempts++
-        if (window.nostr) {
+        
+        // Revisar si volvió de Amber y window.nostr está disponible
+        const authorized = localStorage.getItem("amber_authorized")
+        
+        if (authorized && window.nostr) {
           clearInterval(interval)
+          localStorage.removeItem("amber_authorized")
           resolve()
         } else if (attempts >= maxAttempts) {
           clearInterval(interval)
-          reject(new Error("Amber not detected. Please make sure:\n1. Amber is installed\n2. You've opened Amber at least once\n3. You've granted permissions to this site in Amber settings"))
+          reject(new Error("Timeout waiting for Amber connection"))
         }
       }, 100)
     })
