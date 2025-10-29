@@ -362,15 +362,8 @@ const user = await signer.user()
         return
       }
       
-      // Intentar abrir Amber con intent
-      const permissions = JSON.stringify(["sign_event", "nip04_encrypt", "nip04_decrypt", "nip44_encrypt", "nip44_decrypt"])
-      const intentUrl = `intent://android.com#Intent;scheme=nostrsigner;S.compressionType=none;S.returnType=signature;S.type=get_public_key;S.callbackUrl=${encodeURIComponent(window.location.href)};S.permissions=${encodeURIComponent(permissions)};end`
-      
-      window.location.href = intentUrl
-      
-      // Esperar a que Amber inyecte window.nostr después del intent
       let attempts = 0
-      const maxAttempts = 50 // 5 segundos
+      const maxAttempts = 100 // 10 segundos
       
       const interval = setInterval(() => {
         attempts++
@@ -379,7 +372,7 @@ const user = await signer.user()
           resolve()
         } else if (attempts >= maxAttempts) {
           clearInterval(interval)
-          reject(new Error("Amber not found or user cancelled"))
+          reject(new Error("Amber not detected. Please make sure:\n1. Amber is installed\n2. You've opened Amber at least once\n3. You've granted permissions to this site in Amber settings"))
         }
       }, 100)
     })
