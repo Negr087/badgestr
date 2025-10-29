@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/amber-callback:path*",
+      "destination": "/amber-callback"
+    }
+  ]
+}
