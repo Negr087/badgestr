@@ -139,44 +139,64 @@ export function NostrProvider({ children }: { children: ReactNode }) {
 }, [ndk])
 
   const loginWithNip07 = async () => {
-    try {
-      if (!window.nostr) {
-        throw new Error("NIP-07 extension not available")
+  try {
+    // Esperar a que window.nostr esté disponible (para Alby)
+    const waitForNostr = () => new Promise<void>((resolve, reject) => {
+      if (window.nostr) {
+        resolve()
+        return
       }
+      
+      let attempts = 0
+      const maxAttempts = 20 // 2 segundos máximo
+      
+      const interval = setInterval(() => {
+        attempts++
+        if (window.nostr) {
+          clearInterval(interval)
+          resolve()
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval)
+          reject(new Error("NIP-07 extension not found"))
+        }
+      }, 100)
+    })
 
-      const signer = new NDKNip07Signer()
-      ndk.signer = signer
-      const user = await ndk.signer?.user()
-if (user) {
-  // Fetch relays del usuario (kind 10002)
-  const relayListEvents = await ndk.fetchEvents({
-    kinds: [10002],
-    authors: [user.pubkey],
-    limit: 1,
-  })
-  const relayList = Array.from(relayListEvents)[0]
-  if (relayList) {
-    // Agregar los relays del usuario a NDK
-    relayList.tags
-      .filter(t => t[0] === "r")
-      .forEach(t => {
-        const relayUrl = t[1]
-        ndk.addExplicitRelay(relayUrl)
+    await waitForNostr()
+
+    const signer = new NDKNip07Signer()
+    ndk.signer = signer
+    const user = await signer.user()
+    
+    if (user) {
+      // Fetch relays del usuario (kind 10002)
+      const relayListEvents = await ndk.fetchEvents({
+        kinds: [10002],
+        authors: [user.pubkey],
+        limit: 1,
       })
+      const relayList = Array.from(relayListEvents)[0]
+      if (relayList) {
+        relayList.tags
+          .filter(t => t[0] === "r")
+          .forEach(t => {
+            const relayUrl = t[1]
+            ndk.addExplicitRelay(relayUrl)
+          })
+      }
+    }
+
+    const npub = nip19.npubEncode(user.pubkey)
+    const userData = { pubkey: user.pubkey, npub }
+
+    setUser(userData)
+    localStorage.setItem("nostr_pubkey", user.pubkey)
+    localStorage.setItem("nostr_npub", npub)
+    localStorage.setItem("nostr_method", "nip07")
+  } catch (err) {
+    throw new Error("Failed to connect with browser extension. Make sure you have a Nostr extension installed.")
   }
 }
-
-      const npub = nip19.npubEncode(user.pubkey)
-      const userData = { pubkey: user.pubkey, npub }
-
-      setUser(userData)
-      localStorage.setItem("nostr_pubkey", user.pubkey)
-      localStorage.setItem("nostr_npub", npub)
-      localStorage.setItem("nostr_method", "nip07")
-    } catch {
-      throw new Error("Failed to connect with browser extension. Make sure you have a Nostr extension installed.")
-    }
-  }
 
   const loginWithNip46 = async (bunkerUrl: string) => {
   try {
@@ -335,9 +355,36 @@ const user = await signer.user()
       throw new Error("Amber is only available on Android devices")
     }
 
-    if (!window.nostr) {
-      throw new Error("Amber not found. Please install Amber from F-Droid or Google Play.")
-    }
+    // Esperar a que Amber inyecte window.nostr
+    const waitForAmber = () => new Promise<void>((resolve, reject) => {
+      if (window.nostr) {
+        resolve()
+        return
+      }
+      
+      // Intentar abrir Amber con intent
+      const permissions = JSON.stringify(["sign_event", "nip04_encrypt", "nip04_decrypt", "nip44_encrypt", "nip44_decrypt"])
+      const intentUrl = `intent://android.com#Intent;scheme=nostrsigner;S.compressionType=none;S.returnType=signature;S.type=get_public_key;S.callbackUrl=${encodeURIComponent(window.location.href)};S.permissions=${encodeURIComponent(permissions)};end`
+      
+      window.location.href = intentUrl
+      
+      // Esperar a que Amber inyecte window.nostr después del intent
+      let attempts = 0
+      const maxAttempts = 50 // 5 segundos
+      
+      const interval = setInterval(() => {
+        attempts++
+        if (window.nostr) {
+          clearInterval(interval)
+          resolve()
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval)
+          reject(new Error("Amber not found or user cancelled"))
+        }
+      }, 100)
+    })
+
+    await waitForAmber()
 
     const signer = new NDKNip07Signer()
     ndk.signer = signer
