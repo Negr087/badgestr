@@ -18,6 +18,66 @@ import { useProfileBadges } from "@/hooks/use-profile-badges"
 import type { Badge } from "@/hooks/use-badges"
 import { useToast } from "@/hooks/use-toast"
 
+// Hook para detectar si venimos de Amber
+function useAmberConnection() {
+  const { loginWithNip07, user } = useNostr()
+  const { toast } = useToast()
+  const [attemptingAmber, setAttemptingAmber] = useState(false)
+
+  useEffect(() => {
+    const amberAuthorized = localStorage.getItem("amber_authorized")
+    
+    if (amberAuthorized && !user) {
+      setAttemptingAmber(true)
+      console.log("Detected Amber authorization, attempting connection...")
+
+      // Intentar conectar varias veces hasta que window.nostr esté disponible
+      let attempts = 0
+      const maxAttempts = 50 // 5 segundos
+
+      const tryConnect = async () => {
+        attempts++
+        
+        if (window.nostr) {
+          console.log("window.nostr found, connecting...")
+          try {
+            await loginWithNip07()
+            localStorage.removeItem("amber_authorized")
+            toast({
+              title: "Connected!",
+              description: "Successfully connected with Amber",
+            })
+          } catch (err) {
+            console.error("Failed to connect with Amber:", err)
+            toast({
+              title: "Connection failed",
+              description: "Could not complete Amber connection",
+              variant: "destructive",
+            })
+          } finally {
+            setAttemptingAmber(false)
+          }
+        } else if (attempts < maxAttempts) {
+          setTimeout(tryConnect, 100)
+        } else {
+          console.error("Timeout waiting for window.nostr")
+          localStorage.removeItem("amber_authorized")
+          setAttemptingAmber(false)
+          toast({
+            title: "Connection timeout",
+            description: "Amber did not respond. Please try again.",
+            variant: "destructive",
+          })
+        }
+      }
+
+      tryConnect()
+    }
+  }, [user, loginWithNip07, toast])
+
+  return attemptingAmber
+}
+
 export default function HomePage() {
   const { user, isLoading: userLoading, logout, ndk } = useNostr()
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null)
@@ -28,6 +88,7 @@ export default function HomePage() {
   const [filterMode, setFilterMode] = useState<"all" | "myBadges" | "myAwards">("all")
   const { badges, isLoading: badgesLoading } = useBadges(filterMode === "myBadges" ? user?.pubkey : undefined)
   const { toast } = useToast()
+  const attemptingAmber = useAmberConnection()
   const { awardedBadges, isLoading: awardsLoading } = useBadgeAwards(
   filterMode === "myAwards" ? user?.pubkey : undefined
 )
@@ -84,10 +145,15 @@ const handleShowAll = () => {
     setAwardDialogOpen(true)
   }
 
-  if (userLoading) {
+  if (userLoading || attemptingAmber) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="space-y-4 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          {attemptingAmber && (
+            <p className="text-muted-foreground">Completing Amber connection...</p>
+          )}
+        </div>
       </div>
     )
   }

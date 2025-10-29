@@ -8,17 +8,17 @@ export default function AmberCallbackPage() {
 
   useEffect(() => {
     console.log("Amber callback page loaded")
-    console.log("Full URL:", window.location.href)
-    console.log("Pathname:", window.location.pathname)
+    console.log("window.nostr available:", !!window.nostr)
     
     // Marcar que Amber fue autorizado
     localStorage.setItem("amber_authorized", "true")
     
-    // Redirigir a home después de un pequeño delay
+    // Dar más tiempo para que Amber inyecte window.nostr
     const timer = setTimeout(() => {
       console.log("Redirecting to home...")
+      console.log("window.nostr available before redirect:", !!window.nostr)
       router.push("/")
-    }, 1000)
+    }, 1500) // Aumentado a 1.5 segundos
 
     return () => clearTimeout(timer)
   }, [router])
@@ -29,7 +29,7 @@ export default function AmberCallbackPage() {
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto" />
         <h1 className="text-3xl font-bold">Connecting with Amber</h1>
         <p className="text-muted-foreground">Completing authentication...</p>
-        <p className="text-xs text-muted-foreground/60">You will be redirected shortly</p>
+        <p className="text-xs text-muted-foreground/60">Preparing your connection...</p>
       </div>
     </div>
   )
