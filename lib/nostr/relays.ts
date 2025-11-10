@@ -1,6 +1,6 @@
 export const DEFAULT_RELAYS = [
   "wss://relay.damus.io",
-  "wss://relay.nostr.band",
+  // "wss://relay.nostr.band",
   "wss://nos.lol",
   "wss://relay.snort.social",
   "wss://nostr.wine",
