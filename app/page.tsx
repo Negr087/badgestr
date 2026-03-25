@@ -41,7 +41,6 @@ function useAmberConnection() {
 
     if (amberAuthorized && amberPubkey && !user) {
       setAttemptingAmber(true)
-      console.log("Completing Amber connection with pubkey:", amberPubkey)
 
       try {
         // Importar nip19
@@ -67,8 +66,7 @@ function useAmberConnection() {
         }).finally(() => {
           setAttemptingAmber(false)
         })
-      } catch (err) {
-        console.error("Failed to complete Amber connection:", err)
+      } catch {
         toast({
           title: "Connection failed",
           description: "Could not complete Amber connection",
@@ -90,7 +88,7 @@ export default function HomePage() {
   const [badgeToAward, setBadgeToAward] = useState<Badge | BadgeWithAward | null>(null)
   const [loginDialogOpen, setLoginDialogOpen] = useState(false)
   const [filterMode, setFilterMode] = useState<"all" | "myBadges" | "myAwards">("all")
-  const { badges, isLoading: badgesLoading } = useBadges(filterMode === "myBadges" ? user?.pubkey : undefined)
+  const { badges, isLoading: badgesLoading, refetch: refetchBadges } = useBadges(filterMode === "myBadges" ? user?.pubkey : undefined)
   const { toast } = useToast()
   const attemptingAmber = useAmberConnection()
   const { awardedBadges, isLoading: awardsLoading } = useBadgeAwards(
@@ -242,42 +240,35 @@ const handleShowAll = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight text-balance"></h1>
-            <div className="space-y-6">
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight text-balance">
-          {filterMode === "myBadges" ? "My Badges" : filterMode === "myAwards" ? "My Awards" : "Discover Badges"}
-        </h1>
-        <p className="text-lg text-muted-foreground text-pretty">
-          {filterMode === "myBadges" 
-            ? "Badges you've created" 
-            : filterMode === "myAwards" 
-            ? "Badges awarded to you" 
-            : "Explore badges created by the Nostr community"}
-        </p>
-      </div>
-      {filterMode !== "all" && (
-        <Button variant="outline" onClick={handleShowAll}>
-          Show All Badges
-        </Button>
-      )}
-    </div>
-  </div>
-  </div>
-  </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight text-balance">
+                {filterMode === "myBadges" ? "My Badges" : filterMode === "myAwards" ? "My Awards" : "Discover Badges"}
+              </h1>
+              <p className="text-lg text-muted-foreground text-pretty">
+                {filterMode === "myBadges"
+                  ? "Badges you've created"
+                  : filterMode === "myAwards"
+                  ? "Badges awarded to you"
+                  : "Explore badges created by the Nostr community"}
+              </p>
+            </div>
+            {filterMode !== "all" && (
+              <Button variant="outline" onClick={handleShowAll}>
+                Show All Badges
+              </Button>
+            )}
+          </div>
 
-  <BadgesGrid 
-  badges={displayBadges}
-  isLoading={filterMode === "myAwards" ? awardsLoading : badgesLoading}
-  showWearButton={filterMode === "myAwards"}
-  profileBadges={localProfileBadges}  // ← Usar local
-  onBadgeClick={setSelectedBadgeId}
-  onWearToggle={filterMode === "myAwards" ? handleWearToggle : undefined}
-/>
-</div>
+          <BadgesGrid
+            badges={displayBadges}
+            isLoading={filterMode === "myAwards" ? awardsLoading : badgesLoading}
+            showWearButton={filterMode === "myAwards"}
+            profileBadges={localProfileBadges}
+            onBadgeClick={setSelectedBadgeId}
+            onWearToggle={filterMode === "myAwards" ? handleWearToggle : undefined}
+          />
+        </div>
       </main>
 
       <BadgeDetailModal
@@ -291,7 +282,7 @@ const handleShowAll = () => {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSuccess={() => {
-          setTimeout(() => window.location.reload(), 1000)
+          setTimeout(() => refetchBadges(), 1000)
         }}
       />
 

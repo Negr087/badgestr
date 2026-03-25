@@ -97,33 +97,8 @@ export function NostrProvider({ children }: { children: ReactNode }) {
             setUser({ pubkey: savedPubkey, npub: savedNpub })
           }
         } else if (savedMethod === "nsec") {
-  // Restore nsec signer from localStorage (stored encrypted would be better)
-  const savedNsec = localStorage.getItem("nostr_nsec")
-  if (savedNsec) {
-    try {
-      let privateKey: Uint8Array
-
-      if (savedNsec.startsWith("nsec1")) {
-        const decoded = nip19.decode(savedNsec)
-        if (decoded.type === "nsec") {
-          privateKey = decoded.data
-        } else {
-          throw new Error("Invalid nsec")
-        }
-      } else {
-        privateKey = new Uint8Array(savedNsec.match(/.{1,2}/g)!.map((byte) => Number.parseInt(byte, 16)))
-      }
-
-      const signer = new NDKPrivateKeySigner(privateKey)
-      ndk.signer = signer
-      setUser({ pubkey: savedPubkey, npub: savedNpub })
-    } catch (err) {
-      console.error("Failed to restore nsec signer:", err)
-      setUser({ pubkey: savedPubkey, npub: savedNpub })
-    }
-  } else {
-    setUser({ pubkey: savedPubkey, npub: savedNpub })
-  }
+          // nsec is never stored in localStorage; restore as read-only
+          setUser({ pubkey: savedPubkey, npub: savedNpub })
         } else if (savedMethod === "readonly") {
           setUser({ pubkey: savedPubkey, npub: savedNpub })
         }
@@ -200,15 +175,12 @@ export function NostrProvider({ children }: { children: ReactNode }) {
 
   const loginWithNip46 = async (bunkerUrl: string) => {
   try {
-    console.log("Original bunker URL:", bunkerUrl) // DEBUG
     if (!bunkerUrl || !bunkerUrl.startsWith("bunker://")) {
       throw new Error("Invalid bunker URL format. Must start with bunker://")
     }
     
-    // Limpiar el URL primero
     const cleanedUrl = bunkerUrl.trim()
-    console.log("Cleaned URL:", cleanedUrl) // DEBUG
-    
+
     // Parse manual sin usar URL()
     const withoutProtocol = cleanedUrl.substring(9) // Quitar "bunker://"
     const questionMarkIndex = withoutProtocol.indexOf("?")
@@ -223,9 +195,6 @@ export function NostrProvider({ children }: { children: ReactNode }) {
       throw new Error("No query parameters found in bunker URL")
     }
     
-    console.log("Remote pubkey:", remotePubkey) // DEBUG
-    console.log("Query string:", queryString) // DEBUG
-    
     // Parse query params
     const params = new URLSearchParams(queryString)
     let relayUrl = params.get("relay")
@@ -235,8 +204,6 @@ export function NostrProvider({ children }: { children: ReactNode }) {
     if (relayUrl && relayUrl.endsWith("/")) {
       relayUrl = relayUrl.slice(0, -1)
     }
-    
-    console.log("Parsed:", { remotePubkey, relayUrl, secret }) // DEBUG
     
     if (!remotePubkey || remotePubkey.length !== 64) {
       throw new Error(`Invalid bunker pubkey (length: ${remotePubkey?.length})`)
@@ -251,14 +218,8 @@ export function NostrProvider({ children }: { children: ReactNode }) {
     
     // Reconstruir el bunker URL limpio
     const cleanBunkerUrl = `bunker://${remotePubkey}?relay=${relayUrl}${secret ? `&secret=${secret}` : ""}`
-    console.log("Clean bunker URL for signer:", cleanBunkerUrl) // DEBUG
-    
+
     const localSigner = NDKPrivateKeySigner.generate()
-    
-    console.log("Creating NDKNip46Signer...") // DEBUG
-    
-    // Use manual constructor with proper setup to bypass NIP-05 verification
-    console.log("Using manual NDKNip46Signer constructor with NIP-05 bypass...") // DEBUG
 
     const signer = new NDKNip46Signer(ndk, remotePubkey, localSigner)
 
@@ -282,24 +243,16 @@ export function NostrProvider({ children }: { children: ReactNode }) {
     // Set the bunker URL for the signer
     signerProps.bunkerUrl = cleanBunkerUrl
 
-    // Override the blockUntilReady method to skip NIP-05 verification
     signerProps.blockUntilReady = async (): Promise<{ pubkey: string }> => {
-      console.log("Custom blockUntilReady: skipping NIP-05 verification") // DEBUG
-      // Manually set the required properties to simulate ready state
       signerProps._isReady = true
-      // Return a mock user object
       return { pubkey: remotePubkey }
     }
 
-    console.log("Waiting for signer to be ready...") // DEBUG
     await signer.blockUntilReady()
 
-    console.log("Signer ready, proceeding...") // DEBUG
+    ndk.signer = signer
 
-console.log("Signer ready, getting user...") // DEBUG
-ndk.signer = signer
-
-const user = await signer.user()
+    const user = await signer.user()
     const npub = nip19.npubEncode(user.pubkey)
     const userData = { pubkey: user.pubkey, npub }
     
@@ -308,10 +261,7 @@ const user = await signer.user()
     localStorage.setItem("nostr_npub", npub)
     localStorage.setItem("nostr_method", "nip46")
     localStorage.setItem("nostr_bunker_url", bunkerUrl)
-    
-    console.log("Bunker login successful!") // DEBUG
   } catch (error) {
-    console.error("Bunker connection error:", error) // DEBUG
     throw new Error("Failed to connect with bunker: " + (error as Error).message)
   }
 }
@@ -341,7 +291,7 @@ const user = await signer.user()
     localStorage.setItem("nostr_pubkey", user.pubkey)
     localStorage.setItem("nostr_npub", npub)
     localStorage.setItem("nostr_method", "nsec")
-    localStorage.setItem("nostr_nsec", nsec)  // AGREGAR ESTA LÍNEA
+    // nsec is intentionally NOT stored in localStorage for security reasons
   } catch {
     throw new Error("Failed to connect with nsec. Please check your private key and try again.")
   }
@@ -355,11 +305,8 @@ const user = await signer.user()
       throw new Error("Amber is only available on Android devices")
     }
 
-    // Generar un signer local temporal para esta sesión
     const localSigner = NDKPrivateKeySigner.generate()
     const localUser = await localSigner.user()
-    
-    console.log("Generated local signer, requesting pubkey from Amber...")
 
     // Preparar el intent para obtener la pubkey de Amber
     const callbackUrl = `${window.location.origin}/amber-callback`

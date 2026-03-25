@@ -46,6 +46,7 @@ export function useBadges(authorPubkey?: string) {
   const [badges, setBadges] = useState<Badge[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fetchCount, setFetchCount] = useState(0)
   const { ndk } = useNDK()
 
   useEffect(() => {
@@ -95,12 +96,9 @@ export function useBadges(authorPubkey?: string) {
     return () => {
       mounted = false
     }
-  }, [authorPubkey, ndk])
+  }, [authorPubkey, ndk, fetchCount])
 
-  const refetch = () => {
-    setIsLoading(true)
-    // Trigger re-fetch by updating a dependency
-  }
+  const refetch = () => setFetchCount((c) => c + 1)
 
   return { badges, isLoading, error, refetch }
 }

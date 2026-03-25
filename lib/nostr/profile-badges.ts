@@ -26,7 +26,6 @@ export async function getProfileBadges(ndk: NDK, pubkey: string): Promise<Profil
       .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
 
     if (profileBadgeEvents.length === 0) {
-      console.log("No profile badge event found")
       return []
     }
 
@@ -50,7 +49,6 @@ export async function getProfileBadges(ndk: NDK, pubkey: string): Promise<Profil
       })
     }
     
-    console.log("Found profile badges (from most recent event):", badges)
     return badges
   } catch (error) {
     console.error("Failed to fetch profile badges:", error)
@@ -73,21 +71,15 @@ export async function toggleProfileBadge(
   try {
     const user = await ndk.signer.user()
     
-    console.log("Current badges (from state):", currentBadges)
-    console.log("Badge to toggle:", badgeId, "action:", action)
-
     let updatedBadges: ProfileBadge[]
     if (action === "add") {
       if (currentBadges.find(b => b.badgeId === badgeId)) {
-        console.log("Badge already exists, not adding")
         return
       }
       updatedBadges = [...currentBadges, { badgeId, awardId }]
     } else {
       updatedBadges = currentBadges.filter((b) => b.badgeId !== badgeId)
     }
-
-    console.log("Updated badges:", updatedBadges)
 
     // Crear evento kind 30008
     const event = new NDKEvent(ndk)
@@ -101,10 +93,8 @@ export async function toggleProfileBadge(
     })
     event.content = ""
 
-    console.log("Publishing event with tags:", event.tags)
     await event.sign()
     await event.publish()
-    console.log("Published profile-badges event id:", event.id)
 
     // Retry loop
     const filter = {
@@ -124,12 +114,6 @@ export async function toggleProfileBadge(
           })
 
           if (profileBadgeEvent) {
-            try {
-              const ids = Array.from(events).map((e) => e.id)
-              console.log("Observed profile-badges events:", ids)
-            } catch {
-              // ignore error when logging event IDs
-            }
             found = true
             break
           }
@@ -140,11 +124,6 @@ export async function toggleProfileBadge(
       await new Promise((res) => setTimeout(res, 100 * Math.pow(2, i)))
     }
 
-    if (!found) {
-      console.warn("Published profile-badges event not found after retries; it may take longer to propagate")
-    } else {
-      console.log("Event published and observed on relays")
-    }
   } catch (error) {
     console.error("Error in toggleProfileBadge:", error)
     throw error

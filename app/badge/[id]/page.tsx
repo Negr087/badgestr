@@ -93,7 +93,6 @@ export default function BadgePage() {
 }, [user])
 
   const handleValidateInput = async () => {
-  console.log("🚀 handleValidateInput called with:", npubOrNip05)  // AGREGAR
   try {
     const input = npubOrNip05.trim()
 
@@ -104,7 +103,6 @@ export default function BadgePage() {
         throw new Error("Invalid npub format")
       }
       const pubkeyHex = decoded.data as string
-      console.log("✅ npub decoded to:", pubkeyHex)  // AGREGAR
       setRecipientPubkey(pubkeyHex)
       toast({
         title: "Valid npub",
@@ -115,16 +113,18 @@ export default function BadgePage() {
 
       // Validar NIP-05
 if (input.includes("@")) {
-      console.log("🔍 Validating NIP-05:", input)  // AGREGAR
       const [name, domain] = input.split("@")
-      const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      let response: Response
+      try {
+        response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`, { signal: controller.signal })
+      } finally {
+        clearTimeout(timeoutId)
+      }
       const data = await response.json()
-      
-      console.log("📦 NIP-05 response:", data)  // AGREGAR
-      
       if (data.names && data.names[name]) {
         const pubkeyHex = data.names[name]
-        console.log("✅ NIP-05 resolved to:", pubkeyHex)  // AGREGAR
         setRecipientPubkey(pubkeyHex)
         toast({
           title: "Valid NIP-05",
@@ -147,7 +147,6 @@ if (input.includes("@")) {
 
       throw new Error("Invalid format. Use npub, NIP-05, or hex pubkey")
     } catch (error) {
-      console.error("❌ Validation error:", error)
       toast({
         title: "Invalid input",
         description: (error as Error).message,
@@ -192,7 +191,6 @@ if (input.includes("@")) {
       description: "The badge has been awarded to your account",
     })
   } catch (error) {
-    console.error("Failed to claim badge:", error)
     toast({
       title: "Error",
       description: error instanceof Error ? error.message : "Failed to claim badge",

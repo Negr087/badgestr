@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { nip19, finalizeEvent } from "nostr-tools"
 import NDK, { NDKEvent } from "@nostr-dev-kit/ndk"
+import { DEFAULT_RELAYS } from "@/lib/nostr/relays"
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,11 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Publicar en relays
     const ndk = new NDK({
-      explicitRelayUrls: [
-        "wss://relay.damus.io",
-        "wss://relay.nostr.band",
-        "wss://nos.lol",
-      ],
+      explicitRelayUrls: DEFAULT_RELAYS,
     })
     await ndk.connect()
 

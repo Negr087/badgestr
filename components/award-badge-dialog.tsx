@@ -80,7 +80,14 @@ export function AwardBadgeDialog({ badge, open, onOpenChange, onSuccess }: Award
       // Validar NIP-05
       else if (input.includes("@")) {
         const [name, domain] = input.split("@")
-        const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        let response: Response
+        try {
+          response = await fetch(`https://${domain}/.well-known/nostr.json?name=${name}`, { signal: controller.signal })
+        } finally {
+          clearTimeout(timeoutId)
+        }
         if (!response.ok) {
           throw new Error(`Failed to resolve NIP-05: ${input}`)
         }
@@ -124,7 +131,6 @@ export function AwardBadgeDialog({ badge, open, onOpenChange, onSuccess }: Award
     onOpenChange(false)
     onSuccess?.()
   } catch (error) {
-    console.error("Failed to award badge:", error)
     toast({
       title: "Failed to award badge",
       description: error instanceof Error ? error.message : "An error occurred",
