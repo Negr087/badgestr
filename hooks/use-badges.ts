@@ -70,7 +70,11 @@ export function useBadges(authorPubkey?: string) {
           filter.authors = [authorPubkey]
         }
 
-        const events = await ndk.fetchEvents(filter)
+        const eventsPromise = ndk.fetchEvents(filter)
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Badges fetch timeout")), 8000)
+        )
+        const events = await Promise.race([eventsPromise, timeoutPromise])
 
         if (!mounted) return
 

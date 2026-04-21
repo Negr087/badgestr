@@ -41,12 +41,16 @@ export default function BadgePage() {
           throw new Error("Invalid badge ID")
         }
 
-        const events = await ndk.fetchEvents({
+        const eventsPromise = ndk.fetchEvents({
           kinds: [kind],
           authors: [pubkey],
           "#d": [identifier],
           limit: 1,
         })
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Badge fetch timeout")), 8000)
+        )
+        const events = await Promise.race([eventsPromise, timeoutPromise])
 
         const event = Array.from(events)[0]
         if (!event) {

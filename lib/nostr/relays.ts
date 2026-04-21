@@ -1,10 +1,10 @@
 export const DEFAULT_RELAYS = [
   "wss://relay.damus.io",
-  // "wss://relay.nostr.band",
+  "wss://relay.nostr.band",
   "wss://nos.lol",
   "wss://relay.snort.social",
   "wss://nostr.wine",
-  // "wss://relay.primal.net",
+  "wss://relay.primal.net",
 ]
 
 export function getRelayList(): string[] {
