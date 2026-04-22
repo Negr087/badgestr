@@ -41,8 +41,8 @@ export function NostrProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
   async function initialize() {
     try {
-      // Connect to relays
-      await ndk.connect()
+      // Connect to relays (3s timeout per relay to avoid blocking on slow/hung relays)
+      await ndk.connect(3000)
 
       // Check if user is already logged in
       const savedPubkey = localStorage.getItem("nostr_pubkey")
